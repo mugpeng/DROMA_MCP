@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "droma-mcp"
+version = "0.1.0"
+description = "MCP server for DROMA drug-omics association analysis"
+authors = [
+    {name = "DROMA Team", email = "contact@droma.org"}
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.3.0",
+    "pandas>=1.5.0",
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "pydantic>=2.0.0",
+    "typer>=0.9.0",
+    "rpy2>=3.5.0",
+    "pathlib",
+    "asyncio",
+    "typing-extensions>=4.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=2.20.0"
+]
+
+[project.scripts]
+droma-mcp = "droma_mcp.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/mugpeng/DROMA"
+Repository = "https://github.com/mugpeng/DROMA"
+Documentation = "https://github.com/mugpeng/DROMA/wiki"
+
+[tool.hatch.version]
+path = "src/droma_mcp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/droma_mcp"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true 
