@@ -1,21 +1,15 @@
 """DROMA MCP server for data loading operations."""
 
 from fastmcp import FastMCP, Context
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, Optional, Any, Union
 import pandas as pd
-import numpy as np
-import tempfile
-import json
 from pathlib import Path
 
 from ..schema.data_loading import (
     LoadMolecularProfilesModel,
     LoadTreatmentResponseModel,
     MultiProjectMolecularProfilesModel,
-    MultiProjectTreatmentResponseModel,
-    ZscoreNormalizationModel,
-    DataValidationModel,
-    BatchLoadModel
+    MultiProjectTreatmentResponseModel
 )
 
 # Create sub-MCP server for data loading
@@ -60,11 +54,11 @@ async def load_molecular_profiles_normalized(
     droma_state = ctx.request_context.lifespan_context
     
     # Check if dataset exists
-    dataset_r_name = droma_state.get_dataset(request.dromaset_id)
+    dataset_r_name = droma_state.get_dataset(request.dataset_name)
     if not dataset_r_name:
         return {
             "status": "error",
-            "message": f"Dataset {request.dromaset_id} not found. Please load it first."
+            "message": f"Dataset {request.dataset_name} not found. Please load it first."
         }
     
     try:
@@ -80,8 +74,8 @@ async def load_molecular_profiles_normalized(
             features = {features_str},
             data_type = "{request.data_type.value}",
             tumor_type = "{request.tumor_type}",
-            zscore = {str(request.zscore).upper()},
-            return_data = {str(request.return_data).upper()}
+            zscore = {str(request.z_score).upper()},
+            verbose = {str(request.verbose).upper()}
         )
         '''
         
@@ -95,10 +89,10 @@ async def load_molecular_profiles_normalized(
         python_result = _convert_r_to_python(r_result, droma_state)
         
         # Cache the result
-        cache_key = f"mol_profiles_{request.dromaset_id}_{request.molecular_type.value}"
+        cache_key = f"mol_profiles_{request.dataset_name}_{request.molecular_type.value}"
         droma_state.cache_data(cache_key, python_result, {
             "molecular_type": request.molecular_type.value,
-            "zscore_normalized": request.zscore,
+            "zscore_normalized": request.z_score,
             "features": request.features,
             "data_type": request.data_type.value,
             "tumor_type": request.tumor_type
@@ -121,9 +115,9 @@ async def load_molecular_profiles_normalized(
             "status": "success",
             "cache_key": cache_key,
             "molecular_type": request.molecular_type.value,
-            "zscore_normalized": request.zscore,
+            "zscore_normalized": request.z_score,
             "stats": stats,
-            "message": f"Loaded {request.molecular_type.value} data for {request.dromaset_id}"
+            "message": f"Loaded {request.molecular_type.value} data for {request.dataset_name}"
         }
         
     except Exception as e:
@@ -148,11 +142,11 @@ async def load_treatment_response_normalized(
     droma_state = ctx.request_context.lifespan_context
     
     # Check if dataset exists
-    dataset_r_name = droma_state.get_dataset(request.dromaset_id)
+    dataset_r_name = droma_state.get_dataset(request.dataset_name)
     if not dataset_r_name:
         return {
             "status": "error",
-            "message": f"Dataset {request.dromaset_id} not found. Please load it first."
+            "message": f"Dataset {request.dataset_name} not found. Please load it first."
         }
     
     try:
@@ -167,8 +161,8 @@ async def load_treatment_response_normalized(
             drugs = {drugs_str},
             data_type = "{request.data_type.value}",
             tumor_type = "{request.tumor_type}",
-            zscore = {str(request.zscore).upper()},
-            return_data = {str(request.return_data).upper()}
+            zscore = {str(request.z_score).upper()},
+            verbose = {str(request.verbose).upper()}
         )
         '''
         
@@ -182,10 +176,10 @@ async def load_treatment_response_normalized(
         python_result = _convert_r_to_python(r_result, droma_state)
         
         # Cache the result
-        cache_key = f"treatment_response_{request.dromaset_id}"
+        cache_key = f"treatment_response_{request.dataset_name}"
         droma_state.cache_data(cache_key, python_result, {
             "drugs": request.drugs,
-            "zscore_normalized": request.zscore,
+            "zscore_normalized": request.z_score,
             "data_type": request.data_type.value,
             "tumor_type": request.tumor_type
         })
@@ -207,9 +201,9 @@ async def load_treatment_response_normalized(
             "status": "success",
             "cache_key": cache_key,
             "drugs": request.drugs,
-            "zscore_normalized": request.zscore,
+            "zscore_normalized": request.z_score,
             "stats": stats,
-            "message": f"Loaded treatment response data for {request.dromaset_id}"
+            "message": f"Loaded treatment response data for {request.dataset_name}"
         }
         
     except Exception as e:
@@ -543,38 +537,19 @@ async def export_cached_data(
         }
     
     try:
-        # Create export directory
-        export_dir = Path.home() / ".droma_mcp" / "exports"
-        export_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Generate filename if not provided
-        if not filename:
-            filename = f"droma_export_{cache_key}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        # Use utility function for saving
+        from ..util import save_analysis_result
         
         if isinstance(cached_data, pd.DataFrame):
-            if file_format.lower() == "csv":
-                filepath = export_dir / f"{filename}.csv"
-                cached_data.to_csv(filepath)
-            elif file_format.lower() == "excel":
-                filepath = export_dir / f"{filename}.xlsx"
-                cached_data.to_excel(filepath)
-            elif file_format.lower() == "json":
-                filepath = export_dir / f"{filename}.json"
-                cached_data.to_json(filepath, orient='records')
-            else:
-                return {
-                    "status": "error",
-                    "message": f"Unsupported file format: {file_format}"
-                }
-            
-            await ctx.info(f"Data exported to: {filepath}")
+            export_id = save_analysis_result(cached_data, filename, file_format)
             
             return {
                 "status": "success",
-                "filepath": str(filepath),
+                "export_id": export_id,
                 "filename": filename,
                 "file_format": file_format,
-                "data_shape": cached_data.shape
+                "data_shape": cached_data.shape,
+                "message": f"Data exported successfully as {export_id}"
             }
         else:
             return {

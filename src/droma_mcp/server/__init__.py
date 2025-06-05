@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator, Any, Dict, Optional
 from fastmcp import FastMCP
 import pandas as pd
-import numpy as np
 from pathlib import Path
 
 
@@ -156,6 +155,10 @@ if module in ['all', 'data_loading']:
 if module in ['all', 'database_query']:
     from .database_query import database_query_mcp
     droma_mcp.mount("/query", database_query_mcp)
+
+if module in ['all', 'dataset_management']:
+    from .dataset_management import dataset_management_mcp
+    droma_mcp.mount("/datasets", dataset_management_mcp)
 
 print(f"DROMA MCP Server initialized with module: {module}")
 

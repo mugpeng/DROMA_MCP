@@ -13,12 +13,25 @@ DROMA MCP Server bridges the gap between AI assistants and cancer pharmacogenomi
 ### Key Features
 
 - **🔗 Natural Language Interface**: Ask questions about drug-omics associations in plain English
-- **📊 Data Loading & Normalization**: Load molecular profiles and treatment response data with automatic z-score normalization
+- **📊 Dataset Management**: Load and manage DROMA datasets (CCLE, gCSI, etc.) in memory
+- **📈 Data Loading & Normalization**: Load molecular profiles and treatment response data with automatic z-score normalization
 - **🗂️ Multi-Project Support**: Seamlessly work with data across multiple research projects
 - **💾 Smart Caching**: Efficient data caching with metadata tracking for faster access
 - **📤 Data Export**: Export analysis results to various formats (CSV, Excel, JSON)
 - **⚡ Multi-Modal Support**: Works with various transport protocols (STDIO, HTTP, SSE)
 - **🔄 R Integration**: Seamless integration with existing DROMA R packages via rpy2
+- **🚄 Performance Optimizations**: Memory management, asynchronous processing, and connection pooling
+- **🛡️ Robust Error Handling**: Comprehensive validation, logging, and graceful error recovery
+- **🎛️ Class-Based CLI**: Modern, type-safe command-line interface with comprehensive help
+
+### 🏎️ Performance Features
+
+- **Asynchronous Processing**: Non-blocking I/O operations for better responsiveness
+- **Memory Management**: Automatic memory monitoring and garbage collection
+- **Connection Pooling**: Efficient R environment management
+- **Smart Caching**: LRU cache with size limits and automatic eviction
+- **Batch Operations**: Process multiple datasets efficiently
+- **Performance Monitoring**: Built-in metrics tracking and reporting
 
 ## 📦 Installation
 
@@ -54,28 +67,49 @@ Ensure you have the DROMA R packages installed:
 
 ## 🚀 Quick Start
 
-### 1. Test Configuration
+### 1. Validate Setup
 
 ```bash
+# Check dependencies and configuration
+droma-mcp validate
+
+# Test specific database connection
 droma-mcp test --db-path path/to/droma.sqlite --r-libs path/to/R/libs
 ```
 
-### 2. Start the Server
+### 2. Performance Benchmark
 
 ```bash
-# STDIO mode (for AI assistants)
+# Run performance benchmark
+droma-mcp benchmark
+
+# Benchmark specific module
+droma-mcp benchmark --module data_loading --iterations 10
+```
+
+### 3. Start the Server
+
+```bash
+# STDIO mode (for AI assistants) - default
 droma-mcp run --db-path path/to/droma.sqlite
 
 # HTTP mode (for web applications)
-droma-mcp run --transport streamable-http --port 8000
+droma-mcp run --transport streamable-http --port 8000 --db-path path/to/droma.sqlite
+
+# With verbose logging and dependency validation
+droma-mcp run --verbose --validate-deps --db-path path/to/droma.sqlite
 ```
 
-### 3. MCP Client Configuration
+### 4. MCP Client Configuration
 
 Export a configuration file for your MCP client:
 
 ```bash
+# Generate STDIO configuration
 droma-mcp export-config -o droma-config.json
+
+# Generate HTTP configuration
+droma-mcp export-config -o droma-http-config.json --transport streamable-http --port 8000
 ```
 
 Add to your MCP client configuration:
@@ -91,9 +125,75 @@ Add to your MCP client configuration:
 }
 ```
 
+## 🖥️ CLI Reference
+
+The DROMA MCP CLI provides comprehensive commands for server management and testing:
+
+### Core Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `run` | Start the MCP server | `droma-mcp run --db-path db.sqlite` |
+| `test` | Test configuration and dependencies | `droma-mcp test --db-path db.sqlite` |
+| `validate` | Validate complete setup | `droma-mcp validate` |
+| `benchmark` | Run performance benchmark | `droma-mcp benchmark -n 10` |
+| `export-config` | Export MCP client configuration | `droma-mcp export-config -o config.json` |
+| `info` | Display server information | `droma-mcp info` |
+
+### Global Options
+
+- `--help`: Show help for any command
+- `--verbose`: Enable verbose logging
+- `--db-path`: Path to DROMA SQLite database
+- `--r-libs`: Path to R libraries
+
+### Transport Options
+
+- `--transport`: Choose transport protocol (`stdio`, `streamable-http`, `sse`)
+- `--host`: Host for HTTP transports (default: `127.0.0.1`)
+- `--port`: Port for HTTP transports (default: `8000`)
+- `--path`: Path for streamable HTTP (default: `/mcp`)
+
+### Module Selection
+
+- `--module`: Choose server module (`all`, `data_loading`, `database_query`, `dataset_management`)
+
+### Examples
+
+```bash
+# Get detailed help
+droma-mcp --help
+droma-mcp run --help
+
+# Validate environment
+droma-mcp validate
+
+# Test with specific database
+droma-mcp test --db-path /path/to/droma.db
+
+# Start server with all modules
+droma-mcp run --module all --db-path /path/to/droma.db
+
+# Start HTTP server with data loading only
+droma-mcp run --module data_loading --transport streamable-http --port 8080
+
+# Export configuration for HTTP mode
+droma-mcp export-config --transport streamable-http --port 8080 -o http-config.json
+
+# Run performance benchmark
+droma-mcp benchmark --iterations 5 --module data_loading
+```
+
 ## 🛠️ Available Tools
 
-### Data Loading & Management
+### Dataset Management (Required First Step)
+
+- **`load_dataset`**: Load DROMA datasets (CCLE, gCSI, etc.) into memory from database
+- **`list_loaded_datasets`**: Show which datasets are currently loaded in memory
+- **`set_active_dataset`**: Set the active dataset for subsequent operations
+- **`unload_dataset`**: Remove datasets from memory to free up resources
+
+### Data Loading & Analysis
 
 - **`load_molecular_profiles_normalized`**: Load molecular profiles (mRNA, CNV, methylation, etc.) with z-score normalization
 - **`load_treatment_response_normalized`**: Load drug response data with normalization
@@ -112,11 +212,19 @@ Add to your MCP client configuration:
 
 ## 💬 Example Usage with AI Assistants
 
-Here are some natural language queries you can use:
+### Essential Workflow: Load Dataset First
 
-### Data Loading
+**⚠️ Important**: Before using any data loading functions, you must first load the dataset into memory:
 
-> "Load mRNA expression data for ABCB1 gene from the gCSI dataset with z-score normalization"
+> "Load the CCLE dataset from the database and set it as active"
+
+> "Show me which datasets are currently loaded in memory"
+
+### Data Loading Examples
+
+After loading datasets, you can perform data operations:
+
+> "Load mRNA expression data for ABCB1 gene from the CCLE dataset with z-score normalization"
 
 > "Get Paclitaxel drug response data across multiple projects, including only overlapping samples"
 
@@ -130,13 +238,24 @@ Here are some natural language queries you can use:
 
 > "Retrieve sample annotations for breast cancer cell lines in the gCSI project"
 
+### Complete Workflow Example
+
+1. **First, load your dataset:**
+   > "Load the CCLE dataset into memory"
+
+2. **Then, load and analyze data:**
+   > "Load mRNA expression data for TP53 gene from CCLE with z-score normalization"
+
+3. **Check results:**
+   > "Show me information about cached datasets and export the mRNA data to CSV"
+
 ### Data Management & Analysis
 
 > "Check if my cached molecular data has been z-score normalized and show me the statistics"
 
-> "Show me information about all cached datasets and export the mRNA data to CSV format"
-
 > "Load multi-project treatment response data for Doxorubicin and verify the normalization status"
+
+> "Unload the gCSI dataset to free up memory"
 
 ## 🏗️ Architecture
 
@@ -150,17 +269,20 @@ src/droma_mcp/
 ├── util.py              # Utility functions
 ├── schema/              # Pydantic data models
 │   ├── __init__.py
-│   └── data_loading.py  # All data schemas
+│   ├── data_loading.py      # Data loading schemas
+│   ├── database_query.py    # Database query schemas
+│   └── dataset_management.py # Dataset management schemas
 └── server/              # MCP server modules
-    ├── __init__.py      # Server setup & state
-    ├── data_loading.py  # Data loading operations
-    └── database_query.py # Database exploration operations
+    ├── __init__.py          # Server setup & state
+    ├── dataset_management.py # Dataset loading/management
+    ├── data_loading.py      # Data loading operations
+    └── database_query.py    # Database exploration operations
 ```
 
 ### Key Components
 
-- **Modular Design**: Separate modules for data loading and database exploration
-- **State Management**: Centralized data and R environment management  
+- **Modular Design**: Separate modules for dataset management, data loading, and database exploration
+- **State Management**: Centralized data and R environment management with active dataset tracking
 - **Type Safety**: Comprehensive Pydantic validation for all inputs
 - **R Integration**: Seamless R-Python data exchange via rpy2
 - **Database Access**: Direct SQLite database querying for exploration
@@ -172,7 +294,7 @@ src/droma_mcp/
 
 - `DROMA_DB_PATH`: Default path to DROMA SQLite database
 - `R_LIBS`: Path to R libraries
-- `DROMA_MCP_MODULE`: Server module to load (`all`, `data_loading`, `normalization`)
+- `DROMA_MCP_MODULE`: Server module to load (`all`, `data_loading`, `database_query`, `dataset_management`)
 - `DROMA_MCP_VERBOSE`: Enable verbose logging
 
 ### Command Line Options
@@ -183,10 +305,30 @@ droma-mcp run --help
 
 ## 🧪 Development
 
-### Running Tests
+### Testing the Framework
 
 ```bash
-pytest tests/
+# Validate complete setup
+droma-mcp validate
+
+# Test dependencies and database connection
+droma-mcp test --db-path path/to/droma.db
+
+# Run performance benchmark
+droma-mcp benchmark --iterations 5
+
+# Test CLI functionality
+droma-mcp info
+droma-mcp export-config -o test-config.json
+```
+
+### Import Testing
+
+```bash
+# Test core imports
+python -c "from src.droma_mcp.cli import cli; print('✓ CLI works')"
+python -c "from src.droma_mcp.server import droma_mcp; print('✓ Server works')"
+python -c "from src.droma_mcp.util import setup_server; print('✓ Utils work')"
 ```
 
 ### Code Quality
@@ -203,6 +345,66 @@ mypy src/
 2. Implement server functions in `server/`
 3. Register tools with FastMCP decorators
 4. Update CLI module loading logic
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Import Errors
+```bash
+# Check if all dependencies are installed
+droma-mcp validate
+
+# Install missing dependencies
+pip install -e .
+```
+
+#### R Integration Issues
+```bash
+# Test R environment
+droma-mcp test --r-libs /path/to/R/libs
+
+# Install R dependencies
+R -e "install.packages('rpy2')"
+```
+
+#### Database Connection Problems
+```bash
+# Test database connection
+droma-mcp test --db-path /path/to/droma.db
+
+# Check database file exists and is readable
+ls -la /path/to/droma.db
+```
+
+#### Server Startup Issues
+```bash
+# Run with verbose logging
+droma-mcp run --verbose --validate-deps
+
+# Test specific module
+droma-mcp run --module data_loading --verbose
+```
+
+### Environment Variables
+
+If experiencing issues, set these environment variables:
+
+```bash
+export DROMA_DB_PATH="/path/to/droma.sqlite"
+export R_LIBS="/path/to/R/libraries"
+export DROMA_MCP_VERBOSE="1"
+```
+
+### Performance Issues
+
+```bash
+# Run benchmark to identify bottlenecks
+droma-mcp benchmark --iterations 10
+
+# Monitor memory usage during operations
+droma-mcp run --verbose
+```
 
 ## 🤝 Contributing
 

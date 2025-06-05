@@ -1,6 +1,9 @@
 # ignore
 # file
-
 .DS_Store
+
 # dir
 /Ref
+src/droma_mcp/__pycache__/
+src/droma_mcp/schema/__pycache__/
+src/droma_mcp/server/__pycache__/

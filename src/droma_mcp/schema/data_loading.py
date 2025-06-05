@@ -1,8 +1,11 @@
 """Pydantic schemas for DROMA data loading operations."""
 
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal, Union, Any
+from typing import List, Optional, Literal
 from enum import Enum
+
+# Import shared enums
+from .database_query import DataType
 
 
 class MolecularType(str, Enum):
@@ -17,20 +20,11 @@ class MolecularType(str, Enum):
     FUSION = "fusion"
 
 
-class DataType(str, Enum):
-    """Supported data types."""
-    ALL = "all"
-    CELL_LINE = "CellLine"
-    PDO = "PDO"
-    PDC = "PDC"
-    PDX = "PDX"
-
-
 class LoadMolecularProfilesModel(BaseModel):
     """Schema for loading molecular profiles with z-score normalization."""
     
-    dromaset_id: str = Field(
-        description="DromaSet object identifier"
+    dataset_name: str = Field(
+        description="Dataset name (e.g., 'CCLE', 'gCSI')"
     )
     molecular_type: MolecularType = Field(
         description="Type of molecular data to load"
@@ -47,21 +41,21 @@ class LoadMolecularProfilesModel(BaseModel):
         default="all",
         description="Filter by tumor type ('all' or specific tumor types)"
     )
-    zscore: bool = Field(
+    z_score: bool = Field(
         default=True,
         description="Whether to apply z-score normalization"
     )
-    return_data: bool = Field(
-        default=True,
-        description="Whether to return the data directly"
+    verbose: bool = Field(
+        default=False,
+        description="Whether to show detailed output"
     )
 
 
 class LoadTreatmentResponseModel(BaseModel):
     """Schema for loading treatment response data with z-score normalization."""
     
-    dromaset_id: str = Field(
-        description="DromaSet object identifier"
+    dataset_name: str = Field(
+        description="Dataset name (e.g., 'CCLE', 'gCSI')"
     )
     drugs: Optional[List[str]] = Field(
         default=None,
@@ -75,13 +69,13 @@ class LoadTreatmentResponseModel(BaseModel):
         default="all",
         description="Filter by tumor type ('all' or specific tumor types)"
     )
-    zscore: bool = Field(
+    z_score: bool = Field(
         default=True,
         description="Whether to apply z-score normalization"
     )
-    return_data: bool = Field(
-        default=True,
-        description="Whether to return the data directly"
+    verbose: bool = Field(
+        default=False,
+        description="Whether to show detailed output"
     )
 
 
@@ -202,97 +196,42 @@ class BatchLoadModel(BaseModel):
     )
 
 
-class GetAnnotationModel(BaseModel):
-    """Schema for retrieving annotation data from DROMA database."""
+class CheckZScoreNormalizationModel(BaseModel):
+    """Schema for checking z-score normalization status."""
     
-    anno_type: Literal["sample", "drug"] = Field(
-        description="Type of annotation to retrieve: 'sample' or 'drug'"
-    )
-    project_name: Optional[str] = Field(
-        default=None,
-        description="Project name to filter results (None for all projects)"
-    )
-    ids: Optional[List[str]] = Field(
-        default=None,
-        description="Specific IDs to retrieve (SampleID for samples, DrugName for drugs)"
-    )
-    data_type: DataType = Field(
-        default=DataType.ALL,
-        description="Filter by data type (for sample annotations only)"
-    )
-    tumor_type: str = Field(
-        default="all",
-        description="Filter by tumor type (for sample annotations only)"
-    )
-    limit: Optional[int] = Field(
-        default=None,
-        description="Maximum number of records to return"
+    cache_key: str = Field(
+        description="Cache key of the dataset to check"
     )
 
 
-class ListSamplesModel(BaseModel):
-    """Schema for listing available samples in DROMA database."""
+class GetCachedDataInfoModel(BaseModel):
+    """Schema for getting cached data information."""
     
-    project_name: str = Field(
-        description="Name of the project (e.g., 'gCSI', 'CCLE')"
-    )
-    data_sources: str = Field(
-        default="all",
-        description="Filter by data sources: 'all' or specific data type (e.g., 'mRNA', 'cnv', 'drug')"
-    )
-    data_type: DataType = Field(
-        default=DataType.ALL,
-        description="Filter by data type"
-    )
-    tumor_type: str = Field(
-        default="all",
-        description="Filter by tumor type"
-    )
-    limit: Optional[int] = Field(
+    cache_key: Optional[str] = Field(
         default=None,
-        description="Maximum number of samples to return"
+        description="Specific cache key to get info for. If None, returns info for all cached data"
     )
-    pattern: Optional[str] = Field(
-        default=None,
-        description="Regex pattern to filter sample names"
+    include_summary_stats: bool = Field(
+        default=True,
+        description="Whether to include summary statistics"
     )
 
 
-class ListFeaturesModel(BaseModel):
-    """Schema for listing available features in DROMA database."""
+class ExportCachedDataModel(BaseModel):
+    """Schema for exporting cached data."""
     
-    project_name: str = Field(
-        description="Name of the project (e.g., 'gCSI', 'CCLE')"
+    cache_key: str = Field(
+        description="Cache key of the dataset to export"
     )
-    data_sources: str = Field(
-        description="Type of data to query (e.g., 'mRNA', 'cnv', 'drug', 'mutation_gene')"
+    format: Literal["csv", "excel", "json"] = Field(
+        default="csv",
+        description="Export format"
     )
-    data_type: DataType = Field(
-        default=DataType.ALL,
-        description="Filter by data type"
-    )
-    tumor_type: str = Field(
-        default="all",
-        description="Filter by tumor type"
-    )
-    limit: Optional[int] = Field(
+    filename: Optional[str] = Field(
         default=None,
-        description="Maximum number of features to return"
+        description="Custom filename for export (auto-generated if None)"
     )
-    pattern: Optional[str] = Field(
-        default=None,
-        description="Regex pattern to filter feature names"
-    )
-
-
-class ListProjectsModel(BaseModel):
-    """Schema for listing available projects in DROMA database."""
-    
-    show_names_only: bool = Field(
-        default=False,
-        description="If True returns only a list of project names"
-    )
-    project_data_types: Optional[str] = Field(
-        default=None,
-        description="Project name to get specific data types for"
+    include_metadata: bool = Field(
+        default=True,
+        description="Whether to include metadata in the export"
     ) 

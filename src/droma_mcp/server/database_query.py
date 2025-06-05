@@ -1,12 +1,11 @@
 """DROMA MCP server for database query and exploration operations."""
 
 from fastmcp import FastMCP, Context
-from typing import Dict, List, Optional, Any, Union
-import pandas as pd
+from typing import Dict, Any
 import sqlite3
 from pathlib import Path
 
-from ..schema.data_loading import (
+from ..schema.database_query import (
     GetAnnotationModel,
     ListSamplesModel,
     ListFeaturesModel,
