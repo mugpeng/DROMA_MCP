@@ -4,7 +4,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for **
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.3+-green.svg)](https://github.com/jlowin/fastmcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MLPv2-yellow.svg)]([Mozilla Public License, version 2.0](https://www.mozilla.org/en-US/MPL/2.0/))
 
 ## 🚀 Overview
 
@@ -417,7 +417,7 @@ Contributions are welcome! Please see our [Contributing Guidelines](CONTRIBUTING
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MPL-2 License - see the [LICENSE](LICENSE) file for details.
 
 ## 🔗 Related Projects
 

@@ -3,7 +3,6 @@
 from fastmcp import FastMCP, Context
 from typing import Dict, Optional, Any, Union
 import pandas as pd
-from pathlib import Path
 
 from ..schema.data_loading import (
     LoadMolecularProfilesModel,
@@ -16,23 +15,39 @@ from ..schema.data_loading import (
 data_loading_mcp = FastMCP("DROMA-Data-Loading")
 
 
-def _convert_r_to_python(r_result, state) -> Union[pd.DataFrame, Dict[str, Any]]:
+def _convert_r_to_python(r_result) -> Union[pd.DataFrame, Dict[str, Any], list]:
     """Convert R result to Python data structures."""
     try:
         import rpy2.robjects as robjects
         from rpy2.robjects import pandas2ri
         
-        # Convert R object to pandas if possible
-        if hasattr(r_result, 'rclass') and 'matrix' in str(r_result.rclass):
-            # Convert R matrix to pandas DataFrame
+        # Activate pandas conversion
+        pandas2ri.activate()
+        
+        # Check if it's a list (multi-project case)
+        if hasattr(r_result, 'rclass') and 'list' in r_result.rclass:
+            # Handle list of data frames (multi-project results)
+            result_list = []
+            for i, item in enumerate(r_result):
+                if hasattr(item, 'rclass') and ('matrix' in item.rclass or 'data.frame' in item.rclass):
+                    # Convert each data frame in the list
+                    pandas_df = pandas2ri.rpy2py(item)
+                    result_list.append(pandas_df)
+                else:
+                    # Keep non-dataframe items as is
+                    result_list.append({"r_object": str(item), "type": str(type(item))})
+            pandas2ri.deactivate()
+            return result_list
+            
+        # Check if it's a single matrix or data.frame
+        elif hasattr(r_result, 'rclass') and ('matrix' in r_result.rclass or 'data.frame' in r_result.rclass):
+            # Convert R matrix or data.frame to pandas DataFrame
             pandas_df = pandas2ri.rpy2py(r_result)
-            return pandas_df
-        elif hasattr(r_result, 'rclass') and 'data.frame' in str(r_result.rclass):
-            # Convert R data.frame to pandas DataFrame
-            pandas_df = pandas2ri.rpy2py(r_result)
+            pandas2ri.deactivate()
             return pandas_df
         else:
             # Return as dictionary for other R objects
+            pandas2ri.deactivate()
             return {"r_object": str(r_result), "type": str(type(r_result))}
             
     except Exception as e:
@@ -74,9 +89,9 @@ async def load_molecular_profiles_normalized(
             features = {features_str},
             data_type = "{request.data_type.value}",
             tumor_type = "{request.tumor_type}",
-            zscore = {str(request.z_score).upper()},
-            verbose = {str(request.verbose).upper()}
+            zscore = {str(request.z_score).upper()}
         )
+        result <- as.data.frame(result)
         '''
         
         await ctx.info(f"Executing R command for molecular profiles: {request.molecular_type.value}")
@@ -86,7 +101,7 @@ async def load_molecular_profiles_normalized(
         r_result = droma_state.r('result')
         
         # Convert result to Python
-        python_result = _convert_r_to_python(r_result, droma_state)
+        python_result = _convert_r_to_python(r_result)
         
         # Cache the result
         cache_key = f"mol_profiles_{request.dataset_name}_{request.molecular_type.value}"
@@ -161,9 +176,9 @@ async def load_treatment_response_normalized(
             drugs = {drugs_str},
             data_type = "{request.data_type.value}",
             tumor_type = "{request.tumor_type}",
-            zscore = {str(request.z_score).upper()},
-            verbose = {str(request.verbose).upper()}
+            zscore = {str(request.z_score).upper()}
         )
+        result <- as.data.frame(result)
         '''
         
         await ctx.info(f"Executing R command for treatment response data")
@@ -173,7 +188,7 @@ async def load_treatment_response_normalized(
         r_result = droma_state.r('result')
         
         # Convert result to Python
-        python_result = _convert_r_to_python(r_result, droma_state)
+        python_result = _convert_r_to_python(r_result)
         
         # Cache the result
         cache_key = f"treatment_response_{request.dataset_name}"
@@ -251,6 +266,7 @@ async def load_multi_project_molecular_profiles_normalized(
             tumor_type = "{request.tumor_type}",
             zscore = {str(request.zscore).upper()}
         )
+        result <- lapply(result, as.data.frame)
         '''
         
         await ctx.info(f"Executing R command for multi-project molecular profiles")
@@ -260,7 +276,7 @@ async def load_multi_project_molecular_profiles_normalized(
         r_result = droma_state.r('result')
         
         # Convert result to Python (should be a list of matrices)
-        python_result = _convert_r_to_python(r_result, droma_state)
+        python_result = _convert_r_to_python(r_result)
         
         # Cache the result
         cache_key = f"multi_mol_profiles_{request.multidromaset_id}_{request.molecular_type.value}"
@@ -274,16 +290,17 @@ async def load_multi_project_molecular_profiles_normalized(
         })
         
         # Get basic stats for multi-project data
-        if isinstance(python_result, dict):
+        if isinstance(python_result, list):
             project_stats = {}
-            for project, data in python_result.items():
+            for i, data in enumerate(python_result):
                 if isinstance(data, pd.DataFrame):
-                    project_stats[project] = {
+                    project_name = f"project_{i+1}"  # or get actual project names if available
+                    project_stats[project_name] = {
                         "shape": data.shape,
                         "features_count": len(data.index),
                         "samples_count": len(data.columns)
                     }
-            stats = {"projects": project_stats}
+            stats = {"projects": project_stats, "total_projects": len(python_result)}
         else:
             stats = {"result_type": "unknown"}
         
@@ -343,6 +360,7 @@ async def load_multi_project_treatment_response_normalized(
             tumor_type = "{request.tumor_type}",
             zscore = {str(request.zscore).upper()}
         )
+        result <- lapply(result, as.data.frame)
         '''
         
         await ctx.info(f"Executing R command for multi-project treatment response")
@@ -352,7 +370,7 @@ async def load_multi_project_treatment_response_normalized(
         r_result = droma_state.r('result')
         
         # Convert result to Python
-        python_result = _convert_r_to_python(r_result, droma_state)
+        python_result = _convert_r_to_python(r_result)
         
         # Cache the result
         cache_key = f"multi_treatment_response_{request.multidromaset_id}"
@@ -365,16 +383,17 @@ async def load_multi_project_treatment_response_normalized(
         })
         
         # Get basic stats for multi-project data
-        if isinstance(python_result, dict):
+        if isinstance(python_result, list):
             project_stats = {}
-            for project, data in python_result.items():
+            for i, data in enumerate(python_result):
                 if isinstance(data, pd.DataFrame):
-                    project_stats[project] = {
+                    project_name = f"project_{i+1}"  # or get actual project names if available
+                    project_stats[project_name] = {
                         "shape": data.shape,
                         "drugs_count": len(data.index),
                         "samples_count": len(data.columns)
                     }
-            stats = {"projects": project_stats}
+            stats = {"projects": project_stats, "total_projects": len(python_result)}
         else:
             stats = {"result_type": "unknown"}
         

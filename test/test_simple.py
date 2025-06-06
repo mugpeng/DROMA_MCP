@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 # Add the src directory to Python path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent / ".."))
 
 from src.droma_mcp.server.database_query import list_droma_projects
 from src.droma_mcp.schema.database_query import ListProjectsModel

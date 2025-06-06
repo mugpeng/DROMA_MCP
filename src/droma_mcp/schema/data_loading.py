@@ -45,10 +45,6 @@ class LoadMolecularProfilesModel(BaseModel):
         default=True,
         description="Whether to apply z-score normalization"
     )
-    verbose: bool = Field(
-        default=False,
-        description="Whether to show detailed output"
-    )
 
 
 class LoadTreatmentResponseModel(BaseModel):
@@ -72,10 +68,6 @@ class LoadTreatmentResponseModel(BaseModel):
     z_score: bool = Field(
         default=True,
         description="Whether to apply z-score normalization"
-    )
-    verbose: bool = Field(
-        default=False,
-        description="Whether to show detailed output"
     )
 
 
