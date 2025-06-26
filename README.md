@@ -4,6 +4,7 @@
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for **DROMA** (Drug Response Omics association MAp) - enabling natural language interactions with drug-omics association analysis.
 
+[![Website](https://img.shields.io/website?url=https%3A//droma01.github.io/)](https://droma01.github.io/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.3+-green.svg)](https://github.com/jlowin/fastmcp)
 
@@ -11,6 +12,8 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for **
 ## 🚀 Overview
 
 DROMA MCP Server bridges the gap between AI assistants and cancer pharmacogenomics analysis by providing a natural language interface to the [DROMA.R](https://github.com/mugpeng/DROMA_R) and [DROMA.Set](https://github.com/mugpeng/DROMA_Set) packages.
+
+It is a part of [DROMA project](https://github.com/mugpeng/DROMA). Visit the [official DROMA website](https://droma01.github.io/) for comprehensive documentation and interactive examples.
 
 ### Key Features
 
