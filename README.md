@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/mugpeng-droma-mcp-badge.png)](https://mseep.ai/app/mugpeng-droma-mcp)
+
 # DROMA MCP Server
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for **DROMA** (Drug Response Omics association MAp) - enabling natural language interactions with drug-omics association analysis.
